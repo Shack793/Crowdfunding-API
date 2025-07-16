@@ -1,0 +1,82 @@
+<?php
+
+namespace App\Filament\Widgets;
+
+use App\Models\Activity;
+use Filament\Tables;
+use Filament\Widgets\TableWidget as BaseWidget;
+use Illuminate\Support\Facades\DB;
+
+class RecentActivitiesTable extends BaseWidget
+{
+    protected static ?string $heading = 'Recent Activities';
+    protected static ?int $sort = 4;
+    protected int|string|array $columnSpan = '1/2';
+    protected static ?string $pollingInterval = null;
+    protected static bool $isLazy = true;
+
+    protected function getTableQuery()
+    {
+        // If you're using a package like spatie/laravel-activitylog
+        if (class_exists('Spatie\\Activitylog\\Models\\Activity')) {
+            return \Spatie\Activitylog\Models\Activity::query()
+                ->with('causer')
+                ->latest()
+                ->limit(5);
+        }
+        
+        // Fallback to a simple query if activity log is not available
+        return DB::table('activities')
+            ->select('*')
+            ->latest()
+            ->limit(5);
+    }
+
+    protected function getTableColumns(): array
+    {
+        $isSpatieActivityLog = class_exists('Spatie\\Activitylog\\Models\\Activity');
+        
+        return [
+            Tables\Columns\TextColumn::make('description')
+                ->label('Activity')
+                ->searchable()
+                ->formatStateUsing(function ($state, $record) use ($isSpatieActivityLog) {
+                    if ($isSpatieActivityLog) {
+                        return $record->description;
+                    }
+                    return $state;
+                }),
+                
+            Tables\Columns\TextColumn::make('causer.name')
+                ->label('User')
+                ->visible($isSpatieActivityLog)
+                ->searchable(),
+                
+            Tables\Columns\TextColumn::make('created_at')
+                ->label('Date')
+                ->dateTime()
+                ->sortable(),
+                
+            Tables\Columns\TextColumn::make('subject_type')
+                ->label('Type')
+                ->formatStateUsing(fn ($state) => $state ? class_basename($state) : null)
+                ->visible($isSpatieActivityLog)
+                ->toggleable(),
+        ];
+    }
+    
+    protected function getTableEmptyStateIcon(): ?string
+    {
+        return 'heroicon-o-clipboard-document-list';
+    }
+    
+    protected function getTableEmptyStateHeading(): ?string
+    {
+        return 'No activities yet';
+    }
+    
+    protected function getTableEmptyStateDescription(): ?string
+    {
+        return 'Activities will appear here as they happen.';
+    }
+}

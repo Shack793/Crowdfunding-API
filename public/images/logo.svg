@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="200" height="50" viewBox="0 0 200 50" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <!-- Background -->
+    <rect width="200" height="50" rx="8" fill="#F59E0B"/>
+    
+    <!-- Text -->
+    <text x="20" y="32" font-family="Arial, sans-serif" font-size="20" font-weight="bold" fill="white">Crowdfund</text>
+    
+    <!-- Icon -->
+    <path d="M160 15H180V35H160V15Z" fill="white"/>
+    <path d="M170 15L160 25L170 35V15Z" fill="#FEF3C7"/>
+    <path d="M170 15L180 25L170 35V15Z" fill="#FCD34D"/>
+</svg>
