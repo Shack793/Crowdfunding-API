@@ -66,17 +66,17 @@ Route::prefix('v1')->group(function () {
         // Campaigns (CRUD & management)
         Route::post('/campaigns', [CampaignController::class, 'store']);
         Route::get('/campaigns/all', [CampaignController::class, 'getAllCampaigns']);
-        Route::put('/campaigns/{id}', [CampaignController::class, 'update']);
-        Route::delete('/campaigns/{id}', [CampaignController::class, 'destroy']);
-        Route::post('/campaigns/{id}/approve', [CampaignController::class, 'approve']);
-        Route::post('/campaigns/{id}/reject', [CampaignController::class, 'reject']);
+        Route::put('/campaigns/{slug}', [CampaignController::class, 'update']);
+        Route::delete('/campaigns/{slug}', [CampaignController::class, 'destroy']);
+        Route::post('/campaigns/{slug}/approve', [CampaignController::class, 'approve']);
+        Route::post('/campaigns/{slug}/reject', [CampaignController::class, 'reject']);
         Route::post('/campaigns/{campaignId}/invite', [CampaignController::class, 'invite']);
         Route::post('/campaigns/invite/accept/{token}', [CampaignController::class, 'acceptInvite']);
         Route::delete('/campaigns/invite/{id}', [CampaignController::class, 'revokeInvite']);
 
         // Contributions
-        Route::post('/campaigns/{id}/donate', [ContributionController::class, 'authenticatedDonate']);
-        Route::post('/campaigns/{id}/contributions', [ContributionController::class, 'store']);
+        Route::post('/campaigns/{slug}/donate', [ContributionController::class, 'authenticatedDonate']);
+        Route::post('/campaigns/{slug}/contributions', [ContributionController::class, 'store']);
         Route::get('/contributions', [ContributionController::class, 'index']);
         Route::get('/contributions/{id}', [ContributionController::class, 'show']);
         Route::get('/get-contributions-stats', [ContributionController::class, 'contributionStats']);
@@ -86,7 +86,7 @@ Route::prefix('v1')->group(function () {
 
         // Dashboard
         Route::get('/dashboard/campaigns', [DashboardController::class, 'campaigns']);
-        Route::get('/dashboard/campaigns/{id}/analytics', [DashboardController::class, 'campaignAnalytics']);
+        Route::get('/dashboard/campaigns/{slug}/analytics', [DashboardController::class, 'campaignAnalytics']);
         Route::get('/dashboard/contributions', [DashboardController::class, 'contributions']);
         Route::get('/dashboard/withdrawals', [DashboardController::class, 'withdrawals']);
 

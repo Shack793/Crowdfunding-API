@@ -80,8 +80,14 @@ class BoostController extends Controller
                 // Here you would integrate with your payment provider (e.g., MoMo)
                 // For now, we'll simulate a successful payment
                 
+                // Update campaign boost status and end date
+                $campaign->update([
+                    'is_boosted' => true,
+                    'boost_ends_at' => $boost->end_date
+                ]);
+
                 // Update boost status to active
-                //$boost->update(['status' => 'active']);
+                $boost->update(['status' => 'active']);
 
                 return response()->json([
                     'success' => true,
