@@ -86,7 +86,7 @@ Route::prefix('v1')->group(function () {
 
         // Dashboard
         Route::get('/dashboard/campaigns', [DashboardController::class, 'campaigns']);
-        Route::get('/dashboard/campaigns/{slug}/analytics', [DashboardController::class, 'campaignAnalytics']);
+        Route::get('/dashboarduser/campaigns/{slug}/analytics', [DashboardController::class, 'campaignAnalytics']);
         Route::get('/dashboard/contributions', [DashboardController::class, 'contributions']);
         Route::get('/dashboard/withdrawals', [DashboardController::class, 'withdrawals']);
 
@@ -97,6 +97,8 @@ Route::prefix('v1')->group(function () {
 
         // Withdrawals
         Route::post('/withdrawals', [WithdrawalController::class, 'store']);
+        
+    
 
         // Notifications
         Route::get('/notifications', [NotificationController::class, 'index']);
@@ -135,4 +137,5 @@ Route::prefix('v1')->group(function () {
     // Payment routes
     Route::post('/payments/debit-wallet', [\App\Http\Controllers\PaymentController::class, 'debitWallet']);
     Route::post('/payments/check-status', [\App\Http\Controllers\PaymentController::class, 'checkStatus']);
+    Route::post('/payments/credit-wallet', [\App\Http\Controllers\PaymentController::class, 'creditWallet']);
 });
