@@ -14,6 +14,8 @@ use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\CommentController;
 use App\Http\Controllers\SubscriberController;
 use App\Http\Controllers\Api\CampaignController as ApiCampaignController;
+use App\Http\Controllers\PaymentController;
+use App\Http\Controllers\WalletController;
 
 /*
 |--------------------------------------------------------------------------
@@ -134,8 +136,15 @@ Route::prefix('v1')->group(function () {
         Route::get('/users/boosts', [\App\Http\Controllers\Api\BoostController::class, 'userBoosts']);
     });
 
-    // Payment routes
-    Route::post('/payments/debit-wallet', [\App\Http\Controllers\PaymentController::class, 'debitWallet']);
-    Route::post('/payments/check-status', [\App\Http\Controllers\PaymentController::class, 'checkStatus']);
-    Route::post('/payments/credit-wallet', [\App\Http\Controllers\PaymentController::class, 'creditWallet']);
+    // Wallet & Payment routes
+    Route::middleware('auth:sanctum')->group(function () {
+        // Wallet routes
+        Route::get('/wallet/balance', [WalletController::class, 'checkBalance']);
+        Route::post('/wallet/update-after-withdrawal', [WalletController::class, 'updateWalletAfterWithdrawal']);
+        
+        // Payment routes
+        Route::post('/payments/debit-wallet', [PaymentController::class, 'debitWallet']);
+        Route::post('/payments/credit-wallet', [PaymentController::class, 'creditWallet']);
+        Route::post('/payments/check-status', [PaymentController::class, 'checkStatus']);
+    });
 });

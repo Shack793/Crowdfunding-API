@@ -13,24 +13,12 @@ class Wallet extends Model
         'user_id',
         'balance',
         'currency',
-        'is_active',
-        'last_transaction_at'
-    ];
-
-    protected $casts = [
-        'balance' => 'decimal:2',
-        'is_active' => 'boolean',
-        'last_transaction_at' => 'datetime'
+        'status'
     ];
 
     public function user()
     {
         return $this->belongsTo(User::class);
-    }
-
-    public function transactions()
-    {
-        return $this->hasMany(Transaction::class);
     }
 
     public function withdrawals()
@@ -40,9 +28,23 @@ class Wallet extends Model
 
     public function updateBalance()
     {
-        $this->balance = $this->transactions()->sum('amount');
-        $this->last_transaction_at = now();
+        $this->balance = $this->calculateBalance();
         $this->save();
-        return $this;
+    }
+
+    private function calculateBalance()
+    {
+        // Calculate based on transactions and withdrawals
+        $credits = Transaction::where('wallet_id', $this->id)
+            ->where('status', 'completed')
+            ->where('effect', 'credit')
+            ->sum('amount');
+            
+        $debits = Transaction::where('wallet_id', $this->id)
+            ->where('status', 'completed')
+            ->where('effect', 'debit')
+            ->sum('amount');
+            
+        return $credits - $debits;
     }
 }
