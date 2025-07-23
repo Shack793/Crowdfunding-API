@@ -139,6 +139,7 @@ Route::prefix('v1')->group(function () {
     // Wallet & Payment routes
     Route::middleware('auth:sanctum')->group(function () {
         // Wallet routes
+        Route::get('/wallet', [WalletController::class, 'getWallet']);
         Route::get('/wallet/balance', [WalletController::class, 'checkBalance']);
         Route::post('/wallet/update-after-withdrawal', [WalletController::class, 'updateWalletAfterWithdrawal']);
         

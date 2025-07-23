@@ -15,6 +15,55 @@ class WalletController extends Controller
      *
      * @return \Illuminate\Http\JsonResponse
      */
+    public function getWallet()
+    {
+        try {
+            Log::info('Getting wallet info', [
+                'user_id' => Auth::id(),
+                'timestamp' => now()
+            ]);
+
+            $user = Auth::user();
+            if (!$user) {
+                Log::error('User not authenticated in getWallet');
+                return response()->json([
+                    'success' => false,
+                    'message' => 'User not authenticated'
+                ], 401);
+            }
+
+            $wallet = Wallet::where('user_id', $user->id)->first();
+
+            if (!$wallet) {
+                // Create wallet if it doesn't exist
+                $wallet = Wallet::create([
+                    'user_id' => $user->id,
+                    'balance' => 0
+                ]);
+            }
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'id' => $wallet->id,
+                    'balance' => $wallet->balance,
+                    'currency' => 'GHS', // Assuming Ghanaian Cedis
+                    'user_id' => $wallet->user_id,
+                    'last_updated' => $wallet->updated_at
+                ]
+            ], 200);
+        } catch (\Exception $e) {
+            Log::error('Error getting wallet info', [
+                'error' => $e->getMessage(),
+                'user_id' => Auth::id()
+            ]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Error getting wallet information'
+            ], 500);
+        }
+    }
+
     public function checkBalance()
     {
         try {
