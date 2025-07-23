@@ -141,6 +141,7 @@ Route::prefix('v1')->group(function () {
         // Wallet routes
         Route::get('/wallet', [WalletController::class, 'getWallet']);
         Route::get('/wallet/balance', [WalletController::class, 'checkBalance']);
+        Route::get('/wallet-stats', [WalletController::class, 'getWalletStats']);
         Route::post('/wallet/update-after-withdrawal', [WalletController::class, 'updateWalletAfterWithdrawal']);
         
         // Payment routes

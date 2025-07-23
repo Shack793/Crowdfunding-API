@@ -3,6 +3,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Contribution;
 use App\Models\Campaign;
+use App\Models\Wallet;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -189,28 +190,49 @@ class ContributionController extends Controller
      */
     public function guestDonate(Request $request, $campaignSlug)
     {
-        $validated = $request->validate([
-            'payment_method_id' => 'required|exists:payment_methods,id',
-            'amount' => 'required|numeric|min:1',
-            'name' => 'required|string',
-            'email' => 'required|email',
-        ]);
-        $campaign = Campaign::where('slug', $campaignSlug)->firstOrFail();
-        $contribution = Contribution::create([
-            'campaign_id' => $campaign->id,
-            'user_id' => null, // guest
-            'payment_method_id' => $validated['payment_method_id'],
-            'amount' => $validated['amount'],
-            'system_reference' => (string) \Illuminate\Support\Str::uuid(),
-            'status' => 'pending',
-            'contribution_date' => now(),
-            // ...other fields as needed
-        ]);
+        try {
+            $validated = $request->validate([
+                'payment_method_id' => 'required|exists:payment_methods,id',
+                'amount' => 'required|numeric|min:1',
+                'name' => 'required|string',
+                'email' => 'required|email',
+            ]);
 
-        return response()->json([
-            'message' => 'Donation successful',
-            'contribution' => $contribution
-        ], 201);
+            $contribution = \DB::transaction(function () use ($campaignSlug, $validated) {
+                $campaign = Campaign::with('user.wallet')->where('slug', $campaignSlug)->firstOrFail();
+                
+                if (!$campaign->user || !$campaign->user->wallet) {
+                    throw new \Exception('Campaign owner wallet not found');
+                }
+
+                $contribution = Contribution::create([
+                    'campaign_id' => $campaign->id,
+                    'user_id' => null, // guest
+                    'wallet_id' => $campaign->user->wallet->id, // campaign owner's wallet
+                    'payment_method_id' => $validated['payment_method_id'],
+                    'amount' => $validated['amount'],
+                    'system_reference' => (string) \Illuminate\Support\Str::uuid(),
+                    'status' => 'pending',
+                    'contribution_date' => now(),
+                ]);
+
+                // Update campaign owner's wallet balance
+                $campaign->user->wallet->increment('balance', $validated['amount']);
+
+                return $contribution;
+            });
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Donation successful',
+                'contribution' => $contribution
+            ], 201);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to process donation: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     public function contributionStats()

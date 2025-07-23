@@ -38,7 +38,10 @@ class WalletController extends Controller
                 // Create wallet if it doesn't exist
                 $wallet = Wallet::create([
                     'user_id' => $user->id,
-                    'balance' => 0
+                    'balance' => 0,
+                    'total_withdrawn' => 0,
+                    'withdrawal_count' => 0,
+                    'currency' => 'GHS'
                 ]);
             }
 
@@ -47,9 +50,12 @@ class WalletController extends Controller
                 'data' => [
                     'id' => $wallet->id,
                     'balance' => $wallet->balance,
-                    'currency' => 'GHS', // Assuming Ghanaian Cedis
-                    'user_id' => $wallet->user_id,
-                    'last_updated' => $wallet->updated_at
+                    'currency' => $wallet->currency ?? 'GHS',
+                    'total_withdrawn' => $wallet->total_withdrawn,
+                    'withdrawal_count' => $wallet->withdrawal_count,
+                    'last_withdrawal_at' => $wallet->last_withdrawal_at,
+                    'last_withdrawal_details' => $wallet->last_withdrawal_details,
+                    'updated_at' => $wallet->updated_at
                 ]
             ], 200);
         } catch (\Exception $e) {
@@ -119,6 +125,64 @@ class WalletController extends Controller
      * @param Request $request
      * @return \Illuminate\Http\JsonResponse
      */
+    /**
+     * Get detailed wallet statistics
+     *
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getWalletStats()
+    {
+        try {
+            Log::info('Getting wallet statistics', [
+                'user_id' => Auth::id(),
+                'timestamp' => now()
+            ]);
+
+            $user = Auth::user();
+            if (!$user) {
+                Log::error('User not authenticated in getWalletStats');
+                return response()->json([
+                    'success' => false,
+                    'message' => 'User not authenticated'
+                ], 401);
+            }
+
+            $wallet = Wallet::where('user_id', $user->id)->first();
+
+            if (!$wallet) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Wallet not found'
+                ], 404);
+            }
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'available_balance' => $wallet->balance,
+                    'total_withdrawn' => $wallet->total_withdrawn,
+                    'total_withdrawals' => $wallet->withdrawal_count,
+                    'currency' => $wallet->currency ?? 'GHS',
+                    'last_withdrawal' => [
+                        'date' => $wallet->last_withdrawal_at,
+                        'details' => $wallet->last_withdrawal_details
+                    ],
+                    'status' => $wallet->status,
+                    'updated_at' => $wallet->updated_at
+                ]
+            ], 200);
+        } catch (\Exception $e) {
+            Log::error('Error getting wallet statistics', [
+                'error' => $e->getMessage(),
+                'user_id' => Auth::id()
+            ]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Error getting wallet statistics'
+            ], 500);
+        }
+    }
+
     public function updateWalletAfterWithdrawal(Request $request)
     {
         try {
@@ -185,9 +249,16 @@ class WalletController extends Controller
                 ], 400);
             }
 
-            // Update wallet balance
-            $wallet->balance -= $amount;
-            $wallet->save();
+            // Update wallet balance and withdrawal amount
+            \DB::transaction(function () use ($wallet, $amount) {
+                // Subtract from wallet balance
+                $wallet->balance -= $amount;
+                
+                // Add to total withdrawn
+                $wallet->total_withdrawn += $amount;
+                
+                $wallet->save();
+            });
 
             // Log the transaction
             Log::info('Wallet updated after withdrawal', [

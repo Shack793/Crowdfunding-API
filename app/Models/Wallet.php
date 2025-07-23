@@ -9,11 +9,25 @@ class Wallet extends Model
 {
     use HasFactory;
 
+    protected $casts = [
+        'balance' => 'decimal:2',
+        'total_withdrawn' => 'decimal:2',
+        'pending_withdrawal' => 'decimal:2',
+        'last_withdrawal_at' => 'datetime',
+        'last_withdrawal_details' => 'json',
+        'withdrawal_count' => 'integer'
+    ];
+
     protected $fillable = [
         'user_id',
         'balance',
         'currency',
-        'status'
+        'status',
+        'total_withdrawn',
+        'pending_withdrawal',
+        'last_withdrawal_at',
+        'last_withdrawal_details',
+        'withdrawal_count'
     ];
 
     public function user()
