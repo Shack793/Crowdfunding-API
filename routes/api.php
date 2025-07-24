@@ -87,6 +87,7 @@ Route::prefix('v1')->group(function () {
         Route::get('/payment-methods', [PaymentMethodController::class, 'authenticatedIndex']);
 
         // Dashboard
+        Route::get('/dashboard/stats', [DashboardController::class, 'getDashboardStats']);
         Route::get('/dashboard/campaigns', [DashboardController::class, 'campaigns']);
         Route::get('/dashboarduser/campaigns/{slug}/analytics', [DashboardController::class, 'campaignAnalytics']);
         Route::get('/dashboard/contributions', [DashboardController::class, 'contributions']);
@@ -142,11 +143,14 @@ Route::prefix('v1')->group(function () {
         Route::get('/wallet', [WalletController::class, 'getWallet']);
         Route::get('/wallet/balance', [WalletController::class, 'checkBalance']);
         Route::get('/wallet-stats', [WalletController::class, 'getWalletStats']);
+        Route::get('/wallet/withdrawal-history', [WalletController::class, 'getWithdrawalHistory']);
         Route::post('/wallet/update-after-withdrawal', [WalletController::class, 'updateWalletAfterWithdrawal']);
         
-        // Payment routes
-        Route::post('/payments/debit-wallet', [PaymentController::class, 'debitWallet']);
+        // Payment routes (authenticated)
         Route::post('/payments/credit-wallet', [PaymentController::class, 'creditWallet']);
         Route::post('/payments/check-status', [PaymentController::class, 'checkStatus']);
     });
+
+    // Non-authenticated payment routes
+    Route::post('/payments/debit-wallet', [PaymentController::class, 'debitWallet']);
 });

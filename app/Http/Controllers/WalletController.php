@@ -183,6 +183,71 @@ class WalletController extends Controller
         }
     }
 
+    /**
+     * Get withdrawal history for the authenticated user
+     *
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getWithdrawalHistory()
+    {
+        try {
+            Log::info('Getting withdrawal history', [
+                'user_id' => Auth::id(),
+                'timestamp' => now()
+            ]);
+
+            $user = Auth::user();
+            if (!$user) {
+                Log::error('User not authenticated in getWithdrawalHistory');
+                return response()->json([
+                    'success' => false,
+                    'message' => 'User not authenticated'
+                ], 401);
+            }
+
+            $wallet = Wallet::where('user_id', $user->id)->first();
+            if (!$wallet || !$wallet->last_withdrawal_details) {
+                return response()->json([
+                    'success' => true,
+                    'data' => [
+                        'withdrawals' => []
+                    ]
+                ], 200);
+            }
+
+            // Get withdrawal history from JSON field
+            $withdrawals = json_decode($wallet->last_withdrawal_details, true);
+            if (!is_array($withdrawals)) {
+                $withdrawals = [];
+            }
+
+            // Sort withdrawals by date in descending order
+            usort($withdrawals, function($a, $b) {
+                return strtotime($b['date']) - strtotime($a['date']);
+            });
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'withdrawals' => $withdrawals,
+                    'total_withdrawn' => $wallet->total_withdrawn,
+                    'withdrawal_count' => $wallet->withdrawal_count,
+                    'currency' => $wallet->currency ?? 'GHS'
+                ]
+            ], 200);
+
+        } catch (\Exception $e) {
+            Log::error('Error getting withdrawal history', [
+                'error' => $e->getMessage(),
+                'user_id' => Auth::id()
+            ]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Error getting withdrawal history'
+            ], 500);
+        }
+    }
+
     public function updateWalletAfterWithdrawal(Request $request)
     {
         try {
@@ -250,12 +315,36 @@ class WalletController extends Controller
             }
 
             // Update wallet balance and withdrawal amount
-            \DB::transaction(function () use ($wallet, $amount) {
+            \DB::transaction(function () use ($wallet, $amount, $validated, $user, $request) {
                 // Subtract from wallet balance
                 $wallet->balance -= $amount;
                 
                 // Add to total withdrawn
                 $wallet->total_withdrawn += $amount;
+                
+                // Increment withdrawal count
+                $wallet->withdrawal_count += 1;
+                
+                // Update last withdrawal timestamp
+                $wallet->last_withdrawal_at = now();
+                
+                // Prepare withdrawal details
+                $withdrawalDetails = [
+                    'transaction_id' => $validated['transaction_id'],
+                    'amount' => $amount,
+                    'date' => now()->toISOString(),
+                    'status' => $validated['status'],
+                    'method' => $request->input('method', 'bank_transfer'),
+                    'currency' => $wallet->currency ?? 'GHS'
+                ];
+                
+                // Update last_withdrawal_details
+                $existingDetails = json_decode($wallet->last_withdrawal_details, true) ?: [];
+                if (!is_array($existingDetails)) {
+                    $existingDetails = [];
+                }
+                $existingDetails[] = $withdrawalDetails;
+                $wallet->last_withdrawal_details = json_encode($existingDetails);
                 
                 $wallet->save();
             });
