@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 use App\Models\Contribution;
 use App\Models\Campaign;
 use App\Models\Wallet;
+use App\Events\ContributionMade;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -156,7 +157,7 @@ class ContributionController extends Controller
     public function authenticatedDonate(Request $request, $campaignSlug)
     {
         try {
-            $campaign = Campaign::where('slug', $campaignSlug)->firstOrFail();
+            $campaign = Campaign::with('user')->where('slug', $campaignSlug)->firstOrFail();
             
             $validated = $request->validate([
                 'payment_method_id' => 'required|exists:payment_methods,id',
@@ -166,12 +167,21 @@ class ContributionController extends Controller
             $contribution = Contribution::create([
                 'campaign_id' => $campaign->id,
                 'user_id' => Auth::id(),
+                'name' => Auth::user()->name, // store authenticated user's name
                 'payment_method_id' => $validated['payment_method_id'],
                 'amount' => $validated['amount'],
                 'system_reference' => \Illuminate\Support\Str::uuid(),
                 'status' => 'pending',
                 'contribution_date' => now(),
             ]);
+
+            // Fire the ContributionMade event
+            event(new ContributionMade(
+                $contribution,
+                $campaign,
+                $campaign->user,
+                Auth::user()->name
+            ));
 
             return response()->json([
                 'message' => 'Donation successful',
@@ -208,6 +218,7 @@ class ContributionController extends Controller
                 $contribution = Contribution::create([
                     'campaign_id' => $campaign->id,
                     'user_id' => null, // guest
+                    'name' => $validated['name'], // store guest name
                     'wallet_id' => $campaign->user->wallet->id, // campaign owner's wallet
                     'payment_method_id' => $validated['payment_method_id'],
                     'amount' => $validated['amount'],
@@ -218,6 +229,14 @@ class ContributionController extends Controller
 
                 // Update campaign owner's wallet balance
                 $campaign->user->wallet->increment('balance', $validated['amount']);
+
+                // Fire the ContributionMade event
+                event(new ContributionMade(
+                    $contribution,
+                    $campaign,
+                    $campaign->user,
+                    $validated['name']
+                ));
 
                 return $contribution;
             });

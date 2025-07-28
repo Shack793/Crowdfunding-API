@@ -39,7 +39,7 @@ Route::prefix('v1')->group(function () {
     // Public routes
     Route::get('/categories', [CategoryController::class, 'index']);
     Route::get('/payment-methods/public', [PaymentMethodController::class, 'publicIndex']);
-    Route::post('/campaigns/{id}/donate/guest', [ContributionController::class, 'guestDonate']);
+    Route::post('/campaigns/{campaignSlug}/donate/guest', [ContributionController::class, 'guestDonate']);
     Route::get('/campaigns/public', [CampaignController::class, 'getUserCampaigns']);
     Route::get('/campaigns/trending', [CampaignController::class, 'trending']);
     Route::get('/campaigns/{slug}/donations/recent', [ContributionController::class, 'recentDonations']);
@@ -104,8 +104,13 @@ Route::prefix('v1')->group(function () {
     
 
         // Notifications
+        Route::get('/notifications/test', [NotificationController::class, 'test']);
         Route::get('/notifications', [NotificationController::class, 'index']);
+        Route::get('/notifications/unread-count', [NotificationController::class, 'getUnreadCount']);
         Route::put('/notifications/{id}/read', [NotificationController::class, 'markAsRead']);
+        Route::put('/notifications/mark-all-read', [NotificationController::class, 'markAllAsRead']);
+        Route::delete('/notifications/{id}', [NotificationController::class, 'destroy']);
+        Route::delete('/notifications/read', [NotificationController::class, 'deleteRead']);
 
         // Comments & Subscribers
         Route::get('/comments', [CommentController::class, 'index']);

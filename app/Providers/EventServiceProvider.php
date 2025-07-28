@@ -7,7 +7,11 @@ use Illuminate\Auth\Listeners\SendEmailVerificationNotification;
 use Illuminate\Foundation\Support\Providers\EventServiceProvider as ServiceProvider;
 use Illuminate\Support\Facades\Event;
 use App\Events\ContributionCreated;
+use App\Events\ContributionMade;
+use App\Events\WithdrawalCompleted;
 use App\Listeners\UpdateCampaignAmount;
+use App\Listeners\SendContributionNotification;
+use App\Listeners\SendWithdrawalNotification;
 
 class EventServiceProvider extends ServiceProvider
 {
@@ -22,6 +26,12 @@ class EventServiceProvider extends ServiceProvider
         ],
         ContributionCreated::class => [
             UpdateCampaignAmount::class,
+        ],
+        ContributionMade::class => [
+            SendContributionNotification::class,
+        ],
+        WithdrawalCompleted::class => [
+            SendWithdrawalNotification::class,
         ],
     ];
     

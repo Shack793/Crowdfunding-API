@@ -4,11 +4,12 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
 {
-    use HasApiTokens, HasFactory;
+    use HasApiTokens, HasFactory, Notifiable;
 
     protected $fillable = [
         'name',
@@ -59,7 +60,8 @@ class User extends Authenticatable
         return $this->hasMany(Comment::class);
     }
 
-    public function notifications()
+    // Custom notifications relationship (renamed to avoid conflict with Notifiable trait)
+    public function customNotifications()
     {
         return $this->hasMany(Notification::class);
     }

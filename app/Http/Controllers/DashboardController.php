@@ -73,14 +73,26 @@ class DashboardController extends Controller
                 ->take(3)
                 ->get()
                 ->map(function($donation) {
+                    // Determine donor name based on contribution source
+                    $donorName = 'Anonymous Donor';
+                    if ($donation->is_anonymous) {
+                        $donorName = 'Anonymous Donor';
+                    } else if ($donation->name) {
+                        // Guest donation with name stored directly
+                        $donorName = $donation->name;
+                    } else if ($donation->user) {
+                        // Authenticated user donation
+                        $donorName = $donation->user->name;
+                    }
+                    
                     return [
                         'id' => $donation->id,
-                        'donorName' => $donation->is_anonymous ? 'Anonymous Donor' : $donation->user->name,
+                        'donorName' => $donorName,
                         'campaignTitle' => $donation->campaign->title,
                         'amount' => number_format($donation->amount, 2),
                         'date' => $donation->created_at->diffForHumans(),
                         'status' => $donation->status,
-                        'avatar' => $donation->user->profile_image ?? '/placeholder-user.jpg'
+                        'avatar' => $donation->user ? $donation->user->profile_image ?? '/placeholder-user.jpg' : '/placeholder-user.jpg'
                     ];
                 });
 

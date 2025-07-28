@@ -17,6 +17,7 @@ class Contribution extends Model
     protected $fillable = [
         'campaign_id',
         'user_id',
+        'name',
         'wallet_id',
         'payment_method_id',
         'amount',

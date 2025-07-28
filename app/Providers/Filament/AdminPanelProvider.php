@@ -82,7 +82,7 @@ class AdminPanelProvider extends PanelProvider
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')
             //->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
             ->widgets([
-                // Widgets temporarily disabled for maintenance
+                \App\Filament\Widgets\AdminStatsOverview::class,
             ])
             ->databaseNotifications()
             ->databaseNotificationsPolling('30s')
@@ -93,7 +93,6 @@ class AdminPanelProvider extends PanelProvider
             ->navigationGroups([
                 'Content',
                 'Administration',
-                'Settings',
             ])
             ->plugins([
                 \BezhanSalleh\FilamentShield\FilamentShieldPlugin::make(),

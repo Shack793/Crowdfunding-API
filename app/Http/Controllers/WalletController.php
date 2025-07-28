@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Wallet;
 use App\Models\User;
+use App\Events\WithdrawalCompleted;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 
@@ -347,6 +348,14 @@ class WalletController extends Controller
                 $wallet->last_withdrawal_details = json_encode($existingDetails);
                 
                 $wallet->save();
+
+                // Fire the WithdrawalCompleted event
+                event(new WithdrawalCompleted(
+                    $user,
+                    $amount,
+                    $validated['transaction_id'],
+                    'completed'
+                ));
             });
 
             // Log the transaction

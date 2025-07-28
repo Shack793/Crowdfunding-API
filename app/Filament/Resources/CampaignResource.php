@@ -91,10 +91,10 @@ class CampaignResource extends Resource
                         Forms\Components\Select::make('status')
                             ->options([
                                 'draft' => 'Draft',
-                                'pending' => 'Pending Approval',
+                                'pending' => 'Pending',
                                 'active' => 'Active',
                                 'completed' => 'Completed',
-                                'cancelled' => 'Cancelled',
+                                'rejected' => 'Rejected',
                             ])
                             ->required()
                             ->default('draft'),
