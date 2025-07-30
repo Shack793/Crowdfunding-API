@@ -21,6 +21,9 @@ class SettingResource extends Resource
     protected static ?string $navigationGroup = 'Administration';
     protected static ?int $navigationSort = 10;
     
+    // Hide from navigation
+    protected static bool $shouldRegisterNavigation = false;
+    
     protected static ?string $modelLabel = 'Setting';
     protected static ?string $pluralModelLabel = 'Settings';
     

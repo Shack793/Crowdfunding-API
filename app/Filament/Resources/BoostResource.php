@@ -40,7 +40,7 @@ class BoostResource extends Resource
                 Forms\Components\TextInput::make('amount_paid')
                     ->required()
                     ->numeric()
-                    ->prefix('$'),
+                    ->prefix('₵'),
                 Forms\Components\TextInput::make('transaction_id')
                     ->maxLength(255),
                 Forms\Components\DateTimePicker::make('start_date')
@@ -70,7 +70,7 @@ class BoostResource extends Resource
                     ->sortable(),
                 Tables\Columns\TextColumn::make('plan.name'),
                 Tables\Columns\TextColumn::make('amount_paid')
-                    ->money('USD')
+                    ->money('GHS')
                     ->sortable(),
                 Tables\Columns\TextColumn::make('status')
                     ->badge()

@@ -88,22 +88,56 @@ class CampaignController extends Controller
                 // 'thumbnail' => 'nullable|string', // Remove if deprecated
             ]);
 
-            // Remove image_url from validated if present, will be set below
-            unset($validated['image_url']);
+            // Remove non-database fields from validated data
+            $updateData = collect($validated)->except(['image_url', 'image', '_method'])->toArray();
 
-            $campaign->update($validated);
+            // Update campaign with validated data
+            $campaign->update($updateData);
 
             // Handle image upload if present
             if ($request->hasFile('image')) {
+                // Delete old image if exists
+                if ($campaign->image_url) {
+                    $oldPath = str_replace('/storage/', 'public/', parse_url($campaign->image_url, PHP_URL_PATH));
+                    if (Storage::exists($oldPath)) {
+                        Storage::delete($oldPath);
+                    }
+                }
+
+                // Store new image
                 $path = $request->file('image')->store('public/campaigns');
                 $imageUrl = \Illuminate\Support\Facades\Storage::url($path);
                 $campaign->image_url = $imageUrl;
                 $campaign->save();
+
+                // Update thumbnail if provided
+                if ($request->has('thumbnail')) {
+                    $campaign->thumbnail = $request->input('thumbnail');
+                    $campaign->save();
+                }
             }
 
-            return response()->json($campaign);
+            // Load relationships for response
+            $campaign->load(['category', 'user', 'rewards', 'media']);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Campaign updated successfully',
+                'data' => $campaign
+            ]);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $e->errors()
+            ], 422);
         } catch (\Exception $e) {
-            return response()->json(['error' => 'Failed to update campaign', 'message' => $e->getMessage()], 500);
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update campaign',
+                'error' => $e->getMessage()
+            ], 500);
         }
     }
 

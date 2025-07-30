@@ -60,20 +60,29 @@ class CampaignResource extends Resource
                             ->columnSpanFull()
                             ->placeholder('Enter campaign description'),
                             
-                        Forms\Components\FileUpload::make('image')
+                        Forms\Components\FileUpload::make('image_url')
+                            ->label('Campaign Image')
                             ->image()
                             ->directory('campaigns')
-                            ->columnSpanFull(),
+                            ->columnSpanFull()
+                            ->imageEditor()
+                            ->imagePreviewHeight('250')
+                            ->loadingIndicatorPosition('left')
+                            ->panelAspectRatio('2:1')
+                            ->panelLayout('integrated')
+                            ->removeUploadedFileButtonPosition('right')
+                            ->uploadButtonPosition('left')
+                            ->uploadProgressIndicatorPosition('left'),
                             
                         Forms\Components\TextInput::make('goal_amount')
                             ->required()
                             ->numeric()
-                            ->prefix('$')
+                            ->prefix('₵')
                             ->minValue(1),
                             
                         Forms\Components\TextInput::make('current_amount')
                             ->numeric()
-                            ->prefix('$')
+                            ->prefix('₵')
                             ->default(0)
                             ->disabled(),
                             
@@ -119,9 +128,12 @@ class CampaignResource extends Resource
                 fn () => Campaign::query()->with(['category', 'user'])
             )
             ->columns([
-                Tables\Columns\ImageColumn::make('image')
+                Tables\Columns\ImageColumn::make('image_url')
+                    ->label('Image')
                     ->circular()
-                    ->size(40),
+                    ->size(40)
+                    ->defaultImageUrl(url('/images/placeholder-campaign.jpg'))
+                    ->extraAttributes(['class' => 'object-cover']),
                     
                 Tables\Columns\TextColumn::make('title')
                     ->searchable()
@@ -138,11 +150,11 @@ class CampaignResource extends Resource
                     ->searchable(),
                     
                 Tables\Columns\TextColumn::make('goal_amount')
-                    ->money()
+                    ->money('GHS')
                     ->sortable(),
                     
                 Tables\Columns\TextColumn::make('current_amount')
-                    ->money()
+                    ->money('GHS')
                     ->sortable()
                     ->color(fn ($record) => $record->current_amount >= $record->goal_amount ? 'success' : 'primary'),
                     

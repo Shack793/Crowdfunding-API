@@ -76,12 +76,12 @@ class AdminStatsOverview extends BaseWidget
                 ->descriptionIcon('heroicon-m-sparkles')
                 ->color('success'),
 
-            Stat::make('Total Revenue', '$' . number_format($totalRevenue, 2))
-                ->description('From contributions')
-                ->descriptionIcon('heroicon-m-banknotes')
-                ->color('success'),
+           // Stat::make('Total Revenue', '$' . number_format($totalRevenue, 2))
+              //  ->description('From contributions')
+              //  ->descriptionIcon('heroicon-m-banknotes')
+               // ->color('success'),
 
-            Stat::make('Boost Revenue', '$' . number_format($boostRevenue, 2))
+            Stat::make('Boost Revenue', '₵' . number_format($boostRevenue, 2))
                 ->description('From campaign boosts')
                 ->descriptionIcon('heroicon-m-currency-dollar')
                 ->color('info'),

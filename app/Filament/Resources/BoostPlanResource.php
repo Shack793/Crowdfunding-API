@@ -30,7 +30,7 @@ class BoostPlanResource extends Resource
                 Forms\Components\TextInput::make('price')
                     ->required()
                     ->numeric()
-                    ->prefix('$'),
+                    ->prefix('₵'),
                 Forms\Components\TextInput::make('duration_days')
                     ->label('Duration (days)')
                     ->required()
@@ -52,7 +52,7 @@ class BoostPlanResource extends Resource
                     ->searchable()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('price')
-                    ->money('USD')
+                    ->money('GHS')
                     ->sortable(),
                 Tables\Columns\TextColumn::make('duration_days')
                     ->label('Duration (days)')
