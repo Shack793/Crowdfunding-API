@@ -7,6 +7,7 @@ use App\Models\Wallet;
 use App\Events\ContributionMade;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Exception;
 
@@ -273,5 +274,113 @@ class ContributionController extends Controller
             'average_contribution' => $averageContribution,
             'this_month_contributions' => $thisMonthContributions,
         ]);
+    }
+
+    /**
+     * Get mobile wallet holder name via UniWallet API
+     *
+     * @param  Request  $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getWalletHolderName(Request $request)
+    {
+        try {
+            // Validate the request
+            $validated = $request->validate([
+                'msisdn' => 'required|string|regex:/^[0-9+\-\s()]+$/',
+                'network' => 'required|string|in:MTN,VODAFONE,ARTLTIGO',
+            ]);
+
+            // Clean the phone number (remove spaces, dashes, etc.)
+            $cleanMsisdn = preg_replace('/[^0-9+]/', '', $validated['msisdn']);
+            
+            // Convert to standard format (ensure it starts with 233)
+            if (strpos($cleanMsisdn, '0') === 0) {
+                $cleanMsisdn = '233' . substr($cleanMsisdn, 1);
+            } elseif (strpos($cleanMsisdn, '233') !== 0) {
+                $cleanMsisdn = '233' . $cleanMsisdn;
+            }
+
+            // Prepare the payload for UniWallet API
+            $payload = [
+                'productId' => 4,
+                'merchantId' => 1457,
+                'apiKey' => 'u2m0tblpemgr3e2ud9c21oqfe2ftqo4j',
+                'msisdn' => $cleanMsisdn,
+                'network' => $validated['network']
+            ];
+
+            // Log the request for debugging
+            \Log::channel('single')->info('UniWallet name enquiry request', [
+                'payload' => $payload,
+                'original_msisdn' => $validated['msisdn']
+            ]);
+
+            // Make the API call to UniWallet
+            $response = Http::timeout(30)
+                ->withHeaders([
+                    'Content-Type' => 'application/json',
+                    'Accept' => 'application/json',
+                ])
+                ->post('https://uniwallet.transflowitc.com/uniwallet/name/enquiry', $payload);
+
+            // Log the response
+            \Log::channel('single')->info('UniWallet name enquiry response', [
+                'status' => $response->status(),
+                'body' => $response->body()
+            ]);
+
+            $responseData = $response->json();
+
+            // Check if the API call was successful
+            if ($response->successful() && isset($responseData['responseCode'])) {
+                if ($responseData['responseCode'] === '01') {
+                    // Success response
+                    return response()->json([
+                        'success' => true,
+                        'data' => [
+                            'name' => $responseData['name'] ?? null,
+                            'msisdn' => $cleanMsisdn,
+                            'network' => $validated['network'],
+                            'responseMessage' => $responseData['responseMessage'] ?? 'Operation Successful'
+                        ]
+                    ]);
+                } else {
+                    // API returned an error code
+                    return response()->json([
+                        'success' => false,
+                        'message' => $responseData['responseMessage'] ?? 'Name enquiry failed',
+                        'responseCode' => $responseData['responseCode']
+                    ], 400);
+                }
+            }
+
+            // If we get here, the API call failed
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to connect to wallet service',
+                'error' => 'API call unsuccessful'
+            ], 500);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid input data',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            // Log the error
+            \Log::channel('single')->error('UniWallet name enquiry error', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'request' => $request->all()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'An error occurred while fetching wallet holder name',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 }

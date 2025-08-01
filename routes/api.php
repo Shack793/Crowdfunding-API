@@ -50,7 +50,8 @@ Route::prefix('v1')->group(function () {
     Route::get('/boost-plans', [\App\Http\Controllers\Api\BoostPlanController::class, 'index']);
     Route::get('/get-boosted-campaigns', [\App\Http\Controllers\Api\CampaignController::class, 'boosted']);
 
-    
+     // Wallet name enquiry
+        Route::post('/wallet/name-enquiry', [ContributionController::class, 'getWalletHolderName']);
 
     Route::middleware('auth:sanctum')->group(function () {
         // Authenticated boost routes
@@ -58,6 +59,7 @@ Route::prefix('v1')->group(function () {
         // User profile
         Route::get('/user', [AuthController::class, 'profile']);
         Route::put('/user/update', [AuthController::class, 'updateProfile']);
+        Route::put('/user/update-password', [AuthController::class, 'updatePassword']);
         Route::post('/logout', [AuthController::class, 'logout']);
 
         // User dashboard
@@ -82,6 +84,8 @@ Route::prefix('v1')->group(function () {
         Route::get('/contributions', [ContributionController::class, 'index']);
         Route::get('/contributions/{id}', [ContributionController::class, 'show']);
         Route::get('/get-contributions-stats', [ContributionController::class, 'contributionStats']);
+        
+       
 
         // Payment methods
         Route::get('/payment-methods', [PaymentMethodController::class, 'authenticatedIndex']);

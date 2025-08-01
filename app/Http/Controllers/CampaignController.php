@@ -255,17 +255,15 @@ class CampaignController extends Controller
         return response()->json($campaigns);
     }
 
-    // Trending campaigns
+    // Trending campaigns - now shows only boosted campaigns
     public function trending()
     {
-        $threeMonthsAgo = now()->subMonths(3);
-        $campaigns = \App\Models\Campaign::withCount(['contributions' => function($query) use ($threeMonthsAgo) {
-            $query->where('created_at', '>=', $threeMonthsAgo);
-        }])
+        $campaigns = Campaign::with(['category', 'user'])
             ->where('status', 'active')
-            ->having('contributions_count', '>', 0)
-            ->orderByDesc('contributions_count')
-            ->orderByDesc('updated_at')
+            ->where('is_boosted', true)
+            ->where('boost_ends_at', '>', now()) // Only show campaigns with active boosts
+            ->orderByRaw('boost_ends_at ASC') // Campaigns ending soon appear first (urgency)
+            ->orderByDesc('created_at') // Then by newest campaigns
             ->paginate(9); // Use pagination
 
         return response()->json($campaigns);

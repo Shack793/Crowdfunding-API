@@ -40,7 +40,7 @@ class BoostResource extends Resource
                 Forms\Components\TextInput::make('amount_paid')
                     ->required()
                     ->numeric()
-                    ->prefix('₵'),
+                   ->prefix('₵'),
                 Forms\Components\TextInput::make('transaction_id')
                     ->maxLength(255),
                 Forms\Components\DateTimePicker::make('start_date')

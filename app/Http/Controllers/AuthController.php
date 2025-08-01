@@ -153,39 +153,243 @@ class AuthController extends Controller
             DB::beginTransaction();
 
             $user = $request->user();
-            $validator = Validator::make($request->all(), [
+            
+            // Handle both JSON and form data
+            $requestData = [];
+            if ($request->isJson() || $request->header('Content-Type') === 'application/json') {
+                $requestData = $request->json()->all();
+            } else {
+                // Try to get JSON data even if content-type is wrong
+                $jsonData = $request->json();
+                if ($jsonData && $jsonData->all()) {
+                    $requestData = $jsonData->all();
+                } else {
+                    $requestData = $request->all();
+                }
+            }
+            
+            // Debug: Log all request information
+            Log::info('Full request debug', [
+                'method' => $request->method(),
+                'content_type' => $request->header('Content-Type'),
+                'is_json' => $request->isJson(),
+                'all_data' => $request->all(),
+                'json_data' => $request->json() ? $request->json()->all() : null,
+                'processed_data' => $requestData,
+                'raw_content' => $request->getContent()
+            ]);
+            
+            $validator = Validator::make($requestData, [
                 'name' => 'sometimes|string|max:255',
-                'phone' => 'sometimes|string',
-                'country' => 'sometimes|string',
+                'firstName' => 'sometimes|string|max:255',
+                'lastName' => 'sometimes|string|max:255',
+                'email' => 'sometimes|email|unique:users,email,' . $user->id,
+                'phone' => 'sometimes|string|nullable',
+                'country' => 'sometimes|string|nullable',
                 'profile_image' => 'sometimes|mimes:jpg,jpeg,png,gif|max:2048',
-                'password' => 'sometimes|string|min:6|confirmed',
             ]);
 
             if ($validator->fails()) {
-                return response()->json(['errors' => $validator->errors()], 422);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors()
+                ], 422);
             }
 
-            if ($request->has('name')) $user->name = $request->name;
-            if ($request->has('phone')) $user->phone = $request->phone;
-            if ($request->has('country')) $user->country = $request->country;
-            if ($request->has('profile_image')) $user->profile_image = $request->profile_image;
-            if ($request->has('password')) $user->password = Hash::make($request->password);
+            $updateData = [];
+            $hasChanges = false;
 
-            $user->save();
+            // Log the incoming request data for debugging
+            Log::info('Profile update request data', [
+                'user_id' => $user->id,
+                'request_data' => $requestData,
+                'current_user_data' => [
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'phone' => $user->phone,
+                    'country' => $user->country,
+                    'profile_image' => $user->profile_image
+                ]
+            ]);
+
+            // Handle name field - either direct name or firstName + lastName
+            if (isset($requestData['firstName']) || isset($requestData['lastName'])) {
+                $firstName = $requestData['firstName'] ?? '';
+                $lastName = $requestData['lastName'] ?? '';
+                $newName = trim($firstName . ' ' . $lastName);
+                
+                Log::info('Name comparison', [
+                    'firstName' => $firstName,
+                    'lastName' => $lastName,
+                    'newName' => $newName,
+                    'currentName' => $user->name,
+                    'are_different' => ($newName !== $user->name)
+                ]);
+                
+                if ($newName !== $user->name && !empty(trim($newName))) {
+                    $updateData['name'] = $newName;
+                    $hasChanges = true;
+                }
+            } elseif (isset($requestData['name'])) {
+                $newName = $requestData['name'];
+                
+                Log::info('Direct name comparison', [
+                    'newName' => $newName,
+                    'currentName' => $user->name,
+                    'are_different' => ($newName !== $user->name)
+                ]);
+                
+                if ($newName !== $user->name && !empty(trim($newName))) {
+                    $updateData['name'] = $newName;
+                    $hasChanges = true;
+                }
+            }
+
+            // Check other fields for changes
+            if (isset($requestData['email']) && $requestData['email'] !== $user->email) {
+                $updateData['email'] = $requestData['email'];
+                $hasChanges = true;
+                Log::info('Email change detected', [
+                    'old' => $user->email,
+                    'new' => $requestData['email']
+                ]);
+            }
+
+            if (isset($requestData['phone']) && $requestData['phone'] !== $user->phone) {
+                $updateData['phone'] = $requestData['phone'];
+                $hasChanges = true;
+                Log::info('Phone change detected', [
+                    'old' => $user->phone,
+                    'new' => $requestData['phone']
+                ]);
+            }
+
+            if (isset($requestData['country']) && $requestData['country'] !== $user->country) {
+                $updateData['country'] = $requestData['country'];
+                $hasChanges = true;
+                Log::info('Country change detected', [
+                    'old' => $user->country,
+                    'new' => $requestData['country']
+                ]);
+            }
+
+            if (isset($requestData['profile_image']) && $requestData['profile_image'] !== $user->profile_image) {
+                $updateData['profile_image'] = $requestData['profile_image'];
+                $hasChanges = true;
+                Log::info('Profile image change detected', [
+                    'old' => $user->profile_image,
+                    'new' => $requestData['profile_image']
+                ]);
+            }
+
+            Log::info('Update analysis', [
+                'hasChanges' => $hasChanges,
+                'updateData' => $updateData
+            ]);
+
+            if (!$hasChanges) {
+                return response()->json([
+                    'success' => true,
+                    'user' => $user->fresh(), // Get fresh user data
+                    'message' => 'No changes detected',
+                    'debug' => [
+                        'request_method' => $request->method(),
+                        'content_type' => $request->header('Content-Type'),
+                        'processed_data' => $requestData
+                    ]
+                ]);
+            }
+
+            // Update user with only changed fields
+            $user->update($updateData);
 
             DB::commit();
 
+            Log::info('Profile updated successfully', [
+                'user_id' => $user->id,
+                'updated_fields' => array_keys($updateData),
+                'changes' => $updateData
+            ]);
+
             return response()->json([
-                'user' => $user,
+                'success' => true,
+                'user' => $user->fresh(), // Get fresh user data with updated timestamp
                 'message' => 'Profile updated successfully'
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Profile update error', [
                 'error' => $e->getMessage(),
-                'user_id' => $request->user()->id
+                'user_id' => $request->user()->id,
+                'trace' => $e->getTraceAsString()
             ]);
-            return response()->json(['message' => 'Profile update failed'], 500);
+            return response()->json([
+                'success' => false,
+                'message' => 'Profile update failed'
+            ], 500);
+        }
+    }
+
+    public function updatePassword(Request $request)
+    {
+        try {
+            DB::beginTransaction();
+
+            $user = $request->user();
+            $validator = Validator::make($request->all(), [
+                'currentPassword' => 'required|string',
+                'newPassword' => 'required|string|min:6',
+                'confirmPassword' => 'required|string|same:newPassword',
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            // Verify current password
+            if (!Hash::check($request->input('currentPassword'), $user->password)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Current password is incorrect',
+                    'errors' => ['currentPassword' => ['The current password is incorrect']]
+                ], 422);
+            }
+
+            // Update password
+            $user->password = Hash::make($request->input('newPassword'));
+            $user->save();
+
+            // Revoke all existing tokens except current one for security
+            $currentToken = $request->user()->currentAccessToken();
+            $user->tokens()->where('id', '!=', $currentToken->id)->delete();
+
+            DB::commit();
+
+            Log::info('Password updated successfully', [
+                'user_id' => $user->id,
+                'ip' => $request->ip()
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Password updated successfully'
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Password update error', [
+                'error' => $e->getMessage(),
+                'user_id' => $request->user()->id,
+                'trace' => $e->getTraceAsString()
+            ]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Password update failed'
+            ], 500);
         }
     }
 }
