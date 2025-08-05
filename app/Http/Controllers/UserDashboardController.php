@@ -12,14 +12,18 @@ use Illuminate\Support\Facades\Auth;
 
 class UserDashboardController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $userId = Auth::id();
+        $user = $request->user(); // Get authenticated user
+        $userId = $user->id;
         
-        // Total campaigns
-        $totalCampaigns = Campaign::count();
-        // Total contributions
-        $totalContributions = Contribution::sum('amount');
+        // User-specific campaign count
+        $totalCampaigns = Campaign::where('user_id', $userId)->count();
+        
+        // User-specific contributions (contributions TO the user's campaigns)
+        $totalContributions = Contribution::whereHas('campaign', function($query) use ($userId) {
+            $query->where('user_id', $userId);
+        })->count();
         
         // Get user's wallet details
         $wallet = Wallet::where('user_id', $userId)->first();
@@ -37,82 +41,85 @@ class UserDashboardController extends Controller
         
         // Wallet statistics
         $walletStats = [
-            'balance' => $wallet->balance,
-            'total_withdrawn' => $wallet->total_withdrawn,
+            'balance' => number_format((float)$wallet->balance, 2, '.', ''),
+            'total_withdrawn' => number_format((float)$wallet->total_withdrawn, 2, '.', ''),
             'withdrawal_count' => $wallet->withdrawal_count,
             'currency' => $wallet->currency ?? 'GHS',
             'last_withdrawal_at' => $wallet->last_withdrawal_at,
             'status' => $wallet->status ?? 'active'
         ];
         
-        // Get withdrawal history from wallet JSON field
-        $withdrawalHistory = [];
-        if ($wallet->last_withdrawal_details) {
-            $withdrawals = json_decode($wallet->last_withdrawal_details, true);
-            if (is_array($withdrawals)) {
-                // Sort by date descending and take last 5
-                usort($withdrawals, function($a, $b) {
-                    return strtotime($b['date']) - strtotime($a['date']);
-                });
-                $withdrawalHistory = array_slice($withdrawals, 0, 5);
-            }
-        }
+        // Get user's withdrawal history (from Withdrawal model)
+        $withdrawalHistory = Withdrawal::where('user_id', $userId)
+            ->latest()
+            ->take(10)
+            ->get()
+            ->map(function ($withdrawal) {
+                return [
+                    'id' => $withdrawal->id,
+                    'amount' => number_format((float)$withdrawal->amount, 2, '.', ''),
+                    'date' => $withdrawal->created_at->format('Y-m-d'),
+                    'status' => $withdrawal->status ?? 'completed',
+                    'method' => $withdrawal->payment_method ?? 'bank_transfer'
+                ];
+            });
         
-        // Expired campaigns
-        $expiredCampaigns = Campaign::where('status', 'expired')->count();
+        // User-specific expired campaigns
+        $expiredCampaigns = Campaign::where('user_id', $userId)
+            ->where('end_date', '<', now())
+            ->count();
 
-        // Chart data: last 6 months
+        // Chart data: last 6 months for user's campaigns
         $chartData = [];
         $months = collect(range(0, 5))->map(function ($i) {
             return now()->subMonths($i)->format('Y-m');
         })->reverse();
         
         foreach ($months as $month) {
-            $donations = Contribution::whereBetween('created_at', ["$month-01", now()->parse("$month-01")->endOfMonth()])->sum('amount');
+            // Donations to user's campaigns
+            $donations = Contribution::whereHas('campaign', function($query) use ($userId) {
+                $query->where('user_id', $userId);
+            })->whereBetween('created_at', ["$month-01", now()->parse("$month-01")->endOfMonth()])
+            ->sum('amount');
             
-            // Get monthly withdrawals from wallet data for authenticated user
-            $monthlyWithdrawals = 0;
-            if ($wallet->last_withdrawal_details) {
-                $allWithdrawals = json_decode($wallet->last_withdrawal_details, true);
-                if (is_array($allWithdrawals)) {
-                    foreach ($allWithdrawals as $withdrawal) {
-                        $withdrawalDate = date('Y-m', strtotime($withdrawal['date']));
-                        if ($withdrawalDate === $month) {
-                            $monthlyWithdrawals += $withdrawal['amount'];
-                        }
-                    }
-                }
-            }
+            // User's withdrawals for this month
+            $monthlyWithdrawals = Withdrawal::where('user_id', $userId)
+                ->whereBetween('created_at', ["$month-01", now()->parse("$month-01")->endOfMonth()])
+                ->sum('amount');
             
             $chartData[] = [
                 'month' => $month,
-                'donations' => $donations,
-                'withdrawals' => $monthlyWithdrawals,
+                'donations' => (float)$donations,
+                'withdrawals' => (float)$monthlyWithdrawals,
             ];
         }
 
-        // Recent contributions
-        $recentContributions = Contribution::with('campaign')
+        // Recent contributions to user's campaigns
+        $recentContributions = Contribution::with(['campaign', 'user'])
+            ->whereHas('campaign', function($query) use ($userId) {
+                $query->where('user_id', $userId);
+            })
             ->orderByDesc('created_at')
-            ->limit(3)
+            ->limit(5)
             ->get()
             ->map(function ($c) {
                 return [
                     'id' => $c->id,
                     'contributor' => $c->name ?? ($c->user->name ?? 'Anonymous'),
                     'campaign' => $c->campaign->title ?? null,
-                    'amount' => $c->amount,
-                    'date' => $c->created_at->toDateString(),
+                    'amount' => number_format((float)$c->amount, 2, '.', ''),
+                    'date' => $c->created_at->format('Y-m-d'),
+                    'campaign_slug' => $c->campaign->slug ?? null,
                 ];
             });
 
         return response()->json([
             'totalCampaigns' => $totalCampaigns,
             'totalContributions' => $totalContributions,
-            'withdrawals' => $wallet->total_withdrawn, // From wallet model
+            'withdrawals' => number_format((float)$wallet->total_withdrawn, 2, '.', ''),
             'expiredCampaigns' => $expiredCampaigns,
-            'walletStats' => $walletStats, // New: Complete wallet information
-            'withdrawalHistory' => $withdrawalHistory, // New: Recent withdrawal history from wallet
+            'walletStats' => $walletStats,
+            'withdrawalHistory' => $withdrawalHistory,
             'chartData' => $chartData,
             'recentContributions' => $recentContributions,
         ]);

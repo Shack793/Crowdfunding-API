@@ -38,7 +38,6 @@ class CampaignController extends Controller
     {
         try {
             $validated = $request->validate([
-                'user_id' => 'required|exists:users,id',
                 'category_id' => 'required|exists:categories,id',
                 'title' => 'required|string|max:255',
                 'slug' => 'required|string|max:255|unique:campaigns,slug',
@@ -51,19 +50,43 @@ class CampaignController extends Controller
                 'image_url' => 'nullable|string',
                 'image' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
             ]);
+            
+            // Automatically assign the authenticated user
+            $validated['user_id'] = $request->user()->id;
             $validated['status'] = 'active';
+            
             // Remove image_url from validated if present, will be set below
             unset($validated['image_url']);
+            
             $campaign = Campaign::create($validated);
+            
             if ($request->hasFile('image')) {
                 $path = $request->file('image')->store('public/campaigns');
                 $imageUrl = \Illuminate\Support\Facades\Storage::url($path);
                 $campaign->image_url = $imageUrl;
                 $campaign->save();
             }
-            return response()->json($campaign, 201);
+            
+            // Load relationships for response
+            $campaign->load(['category', 'user']);
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Campaign created successfully',
+                'data' => $campaign
+            ], 201);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $e->errors()
+            ], 422);
         } catch (\Exception $e) {
-            return response()->json(['error' => 'Failed to create campaign', 'message' => $e->getMessage()], 500);
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to create campaign',
+                'error' => $e->getMessage()
+            ], 500);
         }
     }
 
