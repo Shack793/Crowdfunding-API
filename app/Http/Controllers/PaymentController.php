@@ -35,7 +35,7 @@ class PaymentController extends Controller
         } elseif (in_array($prefix, ['020','050'])) {
             return 'VODAFONE';
         } elseif (in_array($prefix, ['027','057','026'])) {
-            return 'AIRTELTIGO';
+            return 'ARTLTIGO';
         }
         return 'UNKNOWN';
     }
