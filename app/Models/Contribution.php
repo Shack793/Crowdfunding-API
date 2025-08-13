@@ -11,6 +11,7 @@ class Contribution extends Model
 
     const STATUS_PENDING = 'pending';
     const STATUS_COMPLETED = 'completed';
+    const STATUS_SUCCESSFUL = 'successful'; // Added for backward compatibility
     const STATUS_FAILED = 'failed';
     const STATUS_REFUNDED = 'refunded';
 

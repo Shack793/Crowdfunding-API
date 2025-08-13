@@ -16,6 +16,7 @@ use App\Http\Controllers\SubscriberController;
 use App\Http\Controllers\Api\CampaignController as ApiCampaignController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\WalletController;
+use App\Http\Controllers\UserDashboardController;
 
 /*
 |--------------------------------------------------------------------------
@@ -63,7 +64,17 @@ Route::prefix('v1')->group(function () {
         Route::post('/logout', [AuthController::class, 'logout']);
 
         // User dashboard
-        Route::get('/userdashboard', [\App\Http\Controllers\UserDashboardController::class, 'index']);
+        Route::get('/userdashboard', [UserDashboardController::class, 'index']);
+        
+        // Test authentication route
+        Route::get('/auth-test', function (Request $request) {
+            return response()->json([
+                'authenticated' => auth()->check(),
+                'user' => auth()->user(),
+                'token' => $request->bearerToken(),
+                'headers' => $request->headers->all()
+            ]);
+        });
         Route::get('/user/campaigns', [CampaignController::class, 'userCampaigns']);
         Route::get('/user/campaigns/{slug}', [CampaignController::class, 'showUserCampaign']);
 
