@@ -272,12 +272,10 @@ class PaymentController extends Controller
         }
     }
 
-    public function checkStatus(Request $request)
+    public function checkStatus(Request $request, $refNo)
     {
         try {
-            $validated = $request->validate([
-                'refNo' => 'required|string',
-            ]);
+        
 
             $apiKey = env('FALCONPAY_API_KEY', '');
             $apiSecret = env('FALCONPAY_API_SECRET', '');
@@ -285,8 +283,7 @@ class PaymentController extends Controller
 
             $response = \Illuminate\Support\Facades\Http::withHeaders([
                 'Content-Type' => 'application/json',
-            ])->post($baseUrl . '/check/transaction/refNo', [
-                'refNo'     => $validated['refNo'],
+            ])->get($baseUrl . '/check/transaction/' . $refNo, [
                 'apiKey'    => $apiKey,
                 'apiSecret' => $apiSecret
             ]);

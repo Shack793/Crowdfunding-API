@@ -168,9 +168,10 @@ Route::prefix('v1')->group(function () {
         
         // Payment routes (authenticated)
         Route::post('/payments/credit-wallet', [PaymentController::class, 'creditWallet']);
-        Route::post('/payments/check-status', [PaymentController::class, 'checkStatus']);
+        
     });
 
     // Non-authenticated payment routes
     Route::post('/payments/debit-wallet', [PaymentController::class, 'debitWallet']);
+    Route::get('/payments/check-status/{refNo}', [PaymentController::class, 'checkStatus']);
 });
