@@ -10,6 +10,7 @@ use App\Http\Controllers\ContributionController;
 use App\Http\Controllers\PaymentMethodController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\WithdrawalController;
+use App\Http\Controllers\EmailVerificationController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\CommentController;
 use App\Http\Controllers\SubscriberController;
@@ -17,6 +18,7 @@ use App\Http\Controllers\Api\CampaignController as ApiCampaignController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\WalletController;
 use App\Http\Controllers\UserDashboardController;
+use App\Http\Controllers\Api\WithdrawalFeeController;
 
 /*
 |--------------------------------------------------------------------------
@@ -113,6 +115,14 @@ Route::prefix('v1')->group(function () {
         Route::put('/dashboard/rewards/{id}', [RewardController::class, 'update']);
         Route::delete('/dashboard/rewards/{id}', [RewardController::class, 'destroy']);
 
+        // Email Verification for Withdrawals
+        Route::prefix('withdrawal')->group(function () {
+            Route::post('/send-verification-code', [EmailVerificationController::class, 'sendVerificationCode']);
+            Route::post('/verify-code', [EmailVerificationController::class, 'verifyCode']);
+            Route::post('/resend-verification-code', [EmailVerificationController::class, 'resendVerificationCode']);
+            Route::get('/verification-status', [EmailVerificationController::class, 'checkVerificationStatus']);
+        });
+
         // Withdrawals
         Route::post('/withdrawals', [WithdrawalController::class, 'store']);
         
@@ -165,6 +175,18 @@ Route::prefix('v1')->group(function () {
         Route::get('/wallet-stats', [WalletController::class, 'getWalletStats']);
         Route::get('/wallet/withdrawal-history', [WalletController::class, 'getWithdrawalHistory']);
         Route::post('/wallet/update-after-withdrawal', [WalletController::class, 'updateWalletAfterWithdrawal']);
+        
+        // 💰 Withdrawal Fee Management Routes
+        Route::prefix('withdrawal-fees')->group(function () {
+            // Calculate fee before withdrawal (preview)
+            Route::get('/calculate', [WithdrawalFeeController::class, 'calculateFee']);
+            // Record fee when withdrawal is processed
+            Route::post('/record', [WithdrawalFeeController::class, 'recordFee']);
+            // Get user's fee history
+            Route::get('/history', [WithdrawalFeeController::class, 'getUserFees']);
+            // Get fee statistics
+            Route::get('/statistics', [WithdrawalFeeController::class, 'getStatistics']);
+        });
         
         // Payment routes (authenticated)
         Route::post('/payments/credit-wallet', [PaymentController::class, 'creditWallet']);

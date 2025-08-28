@@ -1,0 +1,473 @@
+{
+  "info": {
+    "name": "Crowdfunding API - Email Verification & Main Endpoints",
+    "description": "Complete API testing collection for Crowdfunding application with focus on email verification system",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost/Crowdfunding1/crowddonation/public/api/v1"
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "verification_token",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Test User\",\n    \"email\": \"test@example.com\",\n    \"password\": \"password123\",\n    \"password_confirmation\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/register",
+              "host": ["{{base_url}}"],
+              "path": ["register"]
+            }
+          }
+        },
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"shadrack.new@example.com\",\n    \"password\": \"your-password\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/login",
+              "host": ["{{base_url}}"],
+              "path": ["login"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    pm.environment.set(\"token\", response.token);",
+                  "    console.log('Token set:', response.token);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Email Verification for Withdrawals",
+      "item": [
+        {
+          "name": "Send Verification Code",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"shadrack.new@example.com\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/withdrawal/send-verification-code",
+              "host": ["{{base_url}}"],
+              "path": ["withdrawal", "send-verification-code"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    pm.environment.set(\"verification_token\", response.verification_token);",
+                  "    console.log('Verification token set:', response.verification_token);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Verify Code",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"shadrack.new@example.com\",\n    \"code\": \"123456\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/withdrawal/verify-code",
+              "host": ["{{base_url}}"],
+              "path": ["withdrawal", "verify-code"]
+            }
+          }
+        },
+        {
+          "name": "Resend Verification Code",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"shadrack.new@example.com\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/withdrawal/resend-verification-code",
+              "host": ["{{base_url}}"],
+              "path": ["withdrawal", "resend-verification-code"]
+            }
+          }
+        },
+        {
+          "name": "Check Verification Status",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/withdrawal/verification-status?email=shadrack.new@example.com",
+              "host": ["{{base_url}}"],
+              "path": ["withdrawal", "verification-status"],
+              "query": [
+                {
+                  "key": "email",
+                  "value": "shadrack.new@example.com"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Campaign Management",
+      "item": [
+        {
+          "name": "Create Campaign",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"title\": \"Test Campaign\",\n    \"description\": \"This is a test campaign\",\n    \"goal_amount\": 1000.00,\n    \"category_id\": 1,\n    \"end_date\": \"2025-12-31\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/campaigns",
+              "host": ["{{base_url}}"],
+              "path": ["campaigns"]
+            }
+          }
+        },
+        {
+          "name": "Update Campaign",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"title\": \"Updated Campaign Title\",\n    \"description\": \"Updated description\",\n    \"goal_amount\": 2000.00\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/campaigns/test-campaign-slug",
+              "host": ["{{base_url}}"],
+              "path": ["campaigns", "test-campaign-slug"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Contributions & Donations",
+      "item": [
+        {
+          "name": "Guest Donation",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"amount\": 50.00,\n    \"donor_name\": \"Anonymous Donor\",\n    \"donor_email\": \"donor@example.com\",\n    \"payment_method_id\": 1\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/campaigns/test-campaign-slug/donate/guest",
+              "host": ["{{base_url}}"],
+              "path": ["campaigns", "test-campaign-slug", "donate", "guest"]
+            }
+          }
+        },
+        {
+          "name": "Authenticated Donation",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"amount\": 100.00,\n    \"payment_method_id\": 1,\n    \"is_anonymous\": false\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/campaigns/test-campaign-slug/donate",
+              "host": ["{{base_url}}"],
+              "path": ["campaigns", "test-campaign-slug", "donate"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Withdrawals",
+      "item": [
+        {
+          "name": "Create Withdrawal",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"amount\": 100.00,\n    \"bank_name\": \"Test Bank\",\n    \"account_number\": \"1234567890\",\n    \"account_name\": \"Test User\",\n    \"verification_token\": \"{{verification_token}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/withdrawals",
+              "host": ["{{base_url}}"],
+              "path": ["withdrawals"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Rewards",
+      "item": [
+        {
+          "name": "Create Reward",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"campaign_id\": 1,\n    \"title\": \"Early Bird Reward\",\n    \"description\": \"Special reward for early donors\",\n    \"amount\": 50.00,\n    \"quantity\": 10\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/dashboard/rewards",
+              "host": ["{{base_url}}"],
+              "path": ["dashboard", "rewards"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Comments & Notifications",
+      "item": [
+        {
+          "name": "Create Comment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"campaign_id\": 1,\n    \"content\": \"Great campaign!\",\n    \"parent_id\": null\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/comments",
+              "host": ["{{base_url}}"],
+              "path": ["comments"]
+            }
+          }
+        },
+        {
+          "name": "Subscribe to Campaign",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"campaign_id\": 1,\n    \"email\": \"subscriber@example.com\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/subscribe",
+              "host": ["{{base_url}}"],
+              "path": ["subscribe"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Payments",
+      "item": [
+        {
+          "name": "Credit Wallet",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"amount\": 500.00,\n    \"payment_method\": \"card\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/payments/credit-wallet",
+              "host": ["{{base_url}}"],
+              "path": ["payments", "credit-wallet"]
+            }
+          }
+        },
+        {
+          "name": "Debit Wallet",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"amount\": 100.00,\n    \"recipient_wallet\": \"wallet-address\",\n    \"description\": \"Payment description\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/payments/debit-wallet",
+              "host": ["{{base_url}}"],
+              "path": ["payments", "debit-wallet"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
