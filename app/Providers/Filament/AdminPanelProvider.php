@@ -80,9 +80,10 @@ class AdminPanelProvider extends PanelProvider
                 ],
             ])
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')
-            //->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
+            ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
             ->widgets([
                 \App\Filament\Widgets\AdminStatsOverview::class,
+                \App\Filament\Widgets\WithdrawalFeesOverview::class,
             ])
             ->databaseNotifications()
             ->databaseNotificationsPolling('30s')
@@ -95,7 +96,7 @@ class AdminPanelProvider extends PanelProvider
                 'Administration',
             ])
             ->plugins([
-                \BezhanSalleh\FilamentShield\FilamentShieldPlugin::make(),
+                // \BezhanSalleh\FilamentShield\FilamentShieldPlugin::make(),
             ])
             ->colors([
                 'primary' => Color::Amber,
@@ -121,7 +122,7 @@ class AdminPanelProvider extends PanelProvider
                 Authenticate::class,
             ])
             ->pages([
-                Pages\Dashboard::class,
+                // Pages\Dashboard::class, // Use default Filament dashboard
             ]);
     }
 }
